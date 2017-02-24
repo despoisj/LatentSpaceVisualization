@@ -77,14 +77,14 @@ def computeTSNEProjectionOfPixelSpace(X, display=True):
         return X_tsne
 
 # Reconstructions for samples in dataset
-def getReconstructedImages(X, vae):
+def getReconstructedImages(X, autoencoder):
     nbSamples = X.shape[0]
     nbSquares = int(math.sqrt(nbSamples))
     nbSquaresHeight = 2*nbSquares
     nbSquaresWidth = nbSquaresHeight
     resultImage = np.zeros((nbSquaresHeight*imageSize,nbSquaresWidth*imageSize/2,X.shape[-1]))
 
-    reconstructedX = vae.predict(X)
+    reconstructedX = autoencoder.predict(X)
 
     for i in range(nbSamples):
         original = X[i]
@@ -96,9 +96,9 @@ def getReconstructedImages(X, vae):
     return resultImage
 
 # Reconstructions for samples in dataset
-def visualizeReconstructedImages(X_train, X_test, vae, save=False, label=False):
-    trainReconstruction = getReconstructedImages(X_train,vae)
-    testReconstruction = getReconstructedImages(X_test,vae)
+def visualizeReconstructedImages(X_train, X_test, autoencoder, save=False, label=False):
+    trainReconstruction = getReconstructedImages(X_train,autoencoder)
+    testReconstruction = getReconstructedImages(X_test,autoencoder)
 
     if not save:
         print("Generating 10 image reconstructions...")
