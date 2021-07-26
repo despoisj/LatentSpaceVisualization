@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 # Loads the dataset - here Normalized MNIST
-def loadDataset():
+def load_dataset():
     from keras.datasets import mnist
     (X_train, y_train), (X_test, y_test) = mnist.load_data()
     X_train = X_train.reshape([-1,28,28,1])/255.

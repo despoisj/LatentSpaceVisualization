@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-from model import getModels
-from config import latent_dim, imageSize, visualsPath
-from datasetTools import loadDataset
+from model import get_models
+from config import latent_dim, img_size, visuals_path
+from tools import load_dataset
 
 # Show every image, good for picking interplation candidates
 def visualizeDataset(X):
@@ -30,7 +30,7 @@ def imscatter(x, y, ax, imageData, zoom):
         x0, y0 = x[i], y[i]
         # Convert to image
         img = imageData[i]*255.
-        img = img.astype(np.uint8).reshape([imageSize,imageSize])
+        img = img.astype(np.uint8).reshape([img_size,img_size])
         img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         # Note: OpenCV uses BGR and plt uses RGB
         image = OffsetImage(img, zoom=zoom)
@@ -65,7 +65,7 @@ def computeTSNEProjectionOfPixelSpace(X, display=True):
     # Compute t-SNE embedding of latent space
     print("Computing t-SNE embedding...")
     tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
-    X_tsne = tsne.fit_transform(X.reshape([-1,imageSize*imageSize*1]))
+    X_tsne = tsne.fit_transform(X.reshape([-1,img_size*img_size*1]))
 
     # Plot images according to t-sne embedding
     if display:
@@ -82,7 +82,7 @@ def getReconstructedImages(X, autoencoder):
     nbSquares = int(math.sqrt(nbSamples))
     nbSquaresHeight = 2*nbSquares
     nbSquaresWidth = nbSquaresHeight
-    resultImage = np.zeros((nbSquaresHeight*imageSize,nbSquaresWidth*imageSize/2,X.shape[-1]))
+    resultImage = np.zeros((nbSquaresHeight*img_size,nbSquaresWidth*img_size/2,X.shape[-1]))
 
     reconstructedX = autoencoder.predict(X)
 
@@ -91,7 +91,7 @@ def getReconstructedImages(X, autoencoder):
         reconstruction = reconstructedX[i]
         rowIndex = i%nbSquaresWidth
         columnIndex = (i-rowIndex)/nbSquaresHeight
-        resultImage[rowIndex*imageSize:(rowIndex+1)*imageSize,columnIndex*2*imageSize:(columnIndex+1)*2*imageSize,:] = np.hstack([original,reconstruction])
+        resultImage[rowIndex*img_size:(rowIndex+1)*img_size,columnIndex*2*img_size:(columnIndex+1)*2*img_size,:] = np.hstack([original,reconstruction])
 
     return resultImage
 
@@ -107,7 +107,7 @@ def visualizeReconstructedImages(X_train, X_test, autoencoder, save=False, label
     result = (result*255.).astype(np.uint8)
 
     if save:
-        cv2.imwrite(visualsPath+"reconstructions_{}.png".format(label),result)
+        cv2.imwrite(visuals_path+"reconstructions_{}.png".format(label),result)
     else:
         cv2.imshow("Reconstructed images (train - test)",result)
         cv2.waitKey()
@@ -184,7 +184,7 @@ def visualizeInterpolation(start, end, encoder, decoder, save=False, nbSteps=5):
         resultLatent = reconstructedImage if resultLatent is None else np.hstack([resultLatent,reconstructedImage])
     
         if save:
-            cv2.imwrite(visualsPath+"{}_{}.png".format(hashName,i),np.hstack([interpolatedImage,reconstructedImage]))
+            cv2.imwrite(visuals_path+"{}_{}.png".format(hashName,i),np.hstack([interpolatedImage,reconstructedImage]))
 
         result = np.vstack([resultImage,resultLatent])
 
@@ -196,6 +196,6 @@ def visualizeInterpolation(start, end, encoder, decoder, save=False, nbSteps=5):
 if __name__ == "__main__":
     # Load dataset to test
     print("Loading dataset...")
-    X_train, X_test = loadDataset()
+    X_train, X_test = load_dataset()
     visualizeDataset(X_test[:100])
 

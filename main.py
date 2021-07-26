@@ -11,106 +11,106 @@ quality of the code.
 import sys
 import time
 
-from config import latent_dim, modelsPath, imageSize
+from config import latent_dim, models_path, img_size
 from keras.optimizers import RMSprop
-from model import getModels
+from model import get_models
 from visuals import visualizeDataset, visualizeReconstructedImages, computeTSNEProjectionOfLatentSpace, computeTSNEProjectionOfPixelSpace, visualizeInterpolation, visualizeArithmetics
-from datasetTools import loadDataset
+from dataset_tools import load_Dataset
 import numpy as np
 import tensorflow as tf
 from random import randint
 
 # Handy parameters
-nbEpoch = 20
-batchSize = 256
-modelName = "autoencoder_mnist.h5"
+nb_epochs = 20
+batch_size = 256
+model_name = "autoencoder_mnist.h5"
 
 #Run ID for tensorboard, timestamp is for ordering
-runID = "{} - Autoencoder - MNIST".format(1./time.time())
+run_id = "{} - Autoencoder - MNIST".format(1. / time.time())
 
 # Returns the string of remaining training time
-def getETA(batchTime, nbBatch, batchIndex, nbEpoch, epoch):
-    seconds = int(batchTime*(nbBatch-batchIndex-1) + batchTime*nbBatch*(nbEpoch-epoch-1))
+def get_eta(batch_time, nb_batch, batch_index, nb_epochs, epoch):
+    seconds = int(batch_time * (nb_batch - batch_index - 1) + batch_time * nb_batch * (nb_epochs - epoch - 1))
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
     return "%d:%02d:%02d"%(h,m,s)
 
-# Trains the Autoencoder, resume training with startEpoch > 0
-def trainModel(startEpoch=0):
+# Trains the Autoencoder, resume training with start_epoch > 0
+def train_model(start_epoch=0):
     # Create models
     print("Creating Autoencoder...")
-    autoencoder, _, _ = getModels()
+    autoencoder, _, _ = get_models()
     autoencoder.compile(optimizer=RMSprop(lr=0.00025), loss="mse")
 
-    # From which we start
-    if startEpoch > 0:
+    # Resuming training
+    if start_epoch != 0:
         # Load Autoencoder weights
         print("Loading weights...")
-        autoencoder.load_weights(modelsPath+modelName)
+        autoencoder.load_weights(models_path+model_name)
 
     print("Loading dataset...")
-    X_train, X_test = loadDataset()
+    X_train, X_test = load_dataset()
 
     # Compute number of batches
-    nbBatch = int(X_train.shape[0]/batchSize)
+    nb_batch = int(X_train.shape[0]/batch_size)
 
     # Train the Autoencoder on dataset
-    print "Training Autoencoder for {} epochs with {} batches per epoch and {} samples per batch.".format(nbEpoch,nbBatch,batchSize)
-    print "Run id: {}".format(runID)
+    print("Training Autoencoder for {} epochs with {} batches per epoch and {} samples per batch.".format(nb_epochs, nb_batch, batch_size))
+    print("Run id: {}".format(run_id))
 
     # Debug utils writer 
-    writer = tf.train.SummaryWriter("/tmp/logs/"+runID)
-    batchTimes = [0. for i in range(5)]
+    writer = tf.train.SummaryWriter("/tmp/logs/" + run_id)
+    batch_times = [0. for i in range(5)]
 
     # For each epoch
-    for epoch in range(startEpoch,nbEpoch):  
+    for epoch in range(start_epoch, nb_epochs):  
         # For each batch
-        for batchIndex in range(nbBatch):
-            batchStartTime = time.time()
+        for batch_index in range(nb_batch):
+            batch_start_time = time.time()
             # Get batch
-            X = X_train[batchIndex*batchSize:(batchIndex+1)*batchSize]
+            X = X_train[batch_index * batch_size:(batch_index + 1) * batch_size]
             
             # Train on batch
-            autoencoderLoss = autoencoder.train_on_batch(X, X)
-            trainingSummary = tf.Summary.Value(tag="Loss", simple_value=float(autoencoderLoss))
+            autoencoder_loss = autoencoder.train_on_batch(X, X)
+            training_summary = tf.Summary.Value(tag="Loss", simple_value=float(autoencoder_loss))
 
             # Compute ETA 
-            batchTime = time.time() - batchStartTime
-            batchTimes = batchTimes[1:] + [batchTime]
-            eta = getETA(sum(batchTimes)/len(batchTimes), nbBatch, batchIndex, nbEpoch, epoch)
+            batch_time = time.time() - batch_start_time
+            batch_times = batch_times[1:] + [batch_time]
+            eta = get_eta(sum(batch_times)/len(batch_times), nb_batch, batch_index, nb_epochs, epoch)
             
             # Save reconstructions on train/test samples
-            if batchIndex%2 == 0:
-                visualizeReconstructedImages(X_train[:16],X_test[:16],autoencoder, save=True, label="{}_{}".format(epoch,batchIndex))
+            if batch_index%2 == 0:
+                visualizeReconstructedImages(X_train[:16],X_test[:16],autoencoder, save=True, label="{}_{}".format(epoch,batch_index))
 
             # Validation & Tensorboard Debug
-            if batchIndex%20 == 0:
-                validationLoss = autoencoder.evaluate(X_test[:512], X_test[:512], batch_size=256, verbose=0)
-                validationSummary = tf.Summary.Value(tag="Validation Loss", simple_value=float(validationLoss))
-                summary = tf.Summary(value=[trainingSummary,validationSummary])
-                print "Epoch {}/{} - Batch {}/{} - Loss: {:.3f}/{:.3f} - ETA:".format(epoch+1,nbEpoch,batchIndex+1,nbBatch,autoencoderLoss,validationLoss), eta
+            if batch_index%20 == 0:
+                validation_loss = autoencoder.evaluate(X_test[:512], X_test[:512], batch_size=256, verbose=0)
+                validation_summary = tf.Summary.Value(tag="Validation Loss", simple_value=float(validation_loss))
+                summary = tf.Summary(value=[training_summary, validation_summary])
+                print("Epoch {}/{} - Batch {}/{} - Loss: {:.3f}/{:.3f} - ETA:".format(epoch + 1, nb_epochs, batch_index + 1, nb_batch, autoencoder_loss, validation_loss), eta)
             else:
-                print "Epoch {}/{} - Batch {}/{} - Loss: {:.3f} - ETA:".format(epoch+1,nbEpoch,batchIndex+1,nbBatch,autoencoderLoss), eta
-                summary = tf.Summary(value=[trainingSummary,])
-            writer.add_summary(summary, epoch*nbBatch + batchIndex)
+                print("Epoch {}/{} - Batch {}/{} - Loss: {:.3f} - ETA:".format(epoch+1,nb_epochs,batch_index+1,nb_batch,autoencoder_loss), eta)
+                summary = tf.Summary(value=[training_summary,])
+            writer.add_summary(summary, epoch*nb_batch + batch_index)
 
         #Save model every epoch
         print("Saving autoencoder...")
-        autoencoder.save_weights(modelsPath+modelName, overwrite=True)
+        autoencoder.save_weights(models_path+model_name, overwrite=True)
 
 # Generates images and plots
 def testModel():
     # Create models
     print("Creating Autoencoder, Encoder and Generator...")
-    autoencoder, encoder, decoder = getModels()
+    autoencoder, encoder, decoder = get_models()
 
     # Load Autoencoder weights
     print("Loading weights...")
-    autoencoder.load_weights(modelsPath+modelName)
+    autoencoder.load_weights(models_path+model_name)
 
     # Load dataset to test
     print("Loading dataset...")
-    X_train, X_test = loadDataset()
+    X_train, X_test = load_dataset()
 
     # Visualization functions
     #visualizeReconstructedImages(X_train[:16],X_test[:16], autoencoder)
@@ -122,13 +122,13 @@ def testModel():
 if __name__ == "__main__":
     arg = sys.argv[1] if len(sys.argv) == 2 else None 
     if arg is None:
-        print "Need argument"
+        print("Need argument")
     elif arg == "train":
-        trainModel(startEpoch=0)
+        train_model(start_epoch=0)
     elif arg == "test":
         testModel()
     else:
-        print "Wrong argument"
+        print("Wrong argument")
 
 
 

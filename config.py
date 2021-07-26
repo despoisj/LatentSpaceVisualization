@@ -1,5 +1,5 @@
-modelsPath = "Models/"
-visualsPath = "Visuals/"
+models_path = "Models/"
+visuals_path = "Visuals/"
 
-imageSize = 28
+img_size = 28
 latent_dim = 32

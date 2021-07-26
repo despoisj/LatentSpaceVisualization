@@ -16,12 +16,12 @@ from keras.models import Model
 from keras.layers.advanced_activations import ELU
 from keras import backend as K
 from keras import objectives
-from config import latent_dim, imageSize
+from config import latent_dim, img_size
 
 # Convolutional models
 # x is input, z is 
-def getModels():
-    input_img = Input(shape=(imageSize, imageSize, 1))
+def get_models():
+    input_img = Input(shape=(img_size, img_size, 1))
     x = Convolution2D(32, 3, 3, border_mode='same')(input_img)
     x = ELU()(x)
     x = MaxPooling2D((2, 2), border_mode='same')(x)
@@ -83,4 +83,3 @@ def getModels():
     ##### MODEL 3: DECODER #####
     decoder = Model(input_z, decoded_decoder_img)
     return autoencoder, encoder, decoder
-
